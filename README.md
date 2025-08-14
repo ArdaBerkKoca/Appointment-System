@@ -146,11 +146,6 @@ TWILIO_AUTH_TOKEN=your-twilio-auth-token
 
 Bu proje MIT lisansı altında lisanslanmıştır.
 
-## 📞 İletişim
-
-Proje Sahibi - [@your-twitter](https://twitter.com/your-twitter)
-
-Proje Linki: [https://github.com/your-username/appointment-system](https://github.com/your-username/appointment-system) 
 # Appointment System
 
 A modern, feature-rich appointment management system built with Next.js, Node.js, and OneSignal integration.
