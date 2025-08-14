@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "onesignal-node": "^3.4.0"
+  }
+}
