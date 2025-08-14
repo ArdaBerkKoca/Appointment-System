@@ -15,8 +15,10 @@ import notificationRoutes from './routes/notifications';
 import aiRoutes from './routes/ai';
 import oneSignalRoutes from './routes/oneSignal';
 import testRoutes from './routes/test';
+import dashboardRoutes from './routes/dashboard';
 import { appointmentScheduler } from './utils/scheduler';
 import { reminderScheduler } from './utils/reminderScheduler';
+import { initializeDatabase, closeDatabase } from './config/database';
 
 // Debug environment variables
 console.log('🔧 Environment variables check:');
@@ -66,6 +68,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/onesignal', oneSignalRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // 404 handler
 app.use(notFound);
@@ -74,29 +77,39 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
   
-  // Start schedulers
-  appointmentScheduler.start();
-  reminderScheduler.start();
+  try {
+    // Initialize database
+    await initializeDatabase();
+    
+    // Start schedulers
+    appointmentScheduler.start();
+    reminderScheduler.start();
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error);
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
   appointmentScheduler.stop();
   reminderScheduler.stop();
+  await closeDatabase();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
   appointmentScheduler.stop();
   reminderScheduler.stop();
+  await closeDatabase();
   process.exit(0);
 });
 

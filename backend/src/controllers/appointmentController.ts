@@ -6,6 +6,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 import { validate, createAppointmentSchema } from '../utils/validation';
 import { EmailService } from '../services/emailService';
 import { oneSignalService } from '../services/oneSignalService';
+import { NotificationModel } from '../models/Notification';
 
 export const createAppointment = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as AuthenticatedRequest).user;
@@ -22,26 +23,42 @@ export const createAppointment = asyncHandler(async (req: Request, res: Response
 
   const appointment = await AppointmentModel.create(appointmentData, user.id);
   
+  // Danışmana bildirim gönder
+  try {
+    await NotificationModel.create({
+      user_id: appointment.consultant_id,
+      title: 'Yeni Randevu Talebi',
+      message: `${appointment.client?.full_name} adlı müşteriden yeni randevu talebi geldi. Tarih: ${new Date(appointment.start_time).toLocaleDateString('tr-TR')} Saat: ${new Date(appointment.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
+      type: 'appointment',
+      is_read: false,
+      appointment_id: appointment.id,
+      action_required: true,
+      action_type: 'approve'
+    });
+  } catch (error) {
+    console.error('Bildirim oluşturma hatası:', error);
+  }
+  
   // E-posta bildirimi gönder
   await EmailService.sendAppointmentCreatedEmail(appointment);
   
-          // OneSignal e-posta bildirimi gönder
-        try {
-          const user = await UserModel.findById(appointment.client_id);
-          if (user && user.email) {
-            await oneSignalService.sendAppointmentConfirmationEmail(user.email, {
-              id: appointment.id.toString(),
-              title: `Randevu - ${appointment.notes || 'Danışmanlık'}`,
-              date: appointment.start_time.toLocaleDateString('tr-TR'),
-              time: appointment.start_time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-              consultantName: appointment.consultant?.full_name || 'Belirtilmemiş',
-              userName: user.full_name || 'Kullanıcı',
-              location: 'Online / Ofis'
-            });
-          }
-        } catch (error) {
-          console.error('OneSignal e-posta gönderme hatası:', error);
-        }
+  // OneSignal e-posta bildirimi gönder
+  try {
+    const user = await UserModel.findById(appointment.client_id);
+    if (user && user.email) {
+      await oneSignalService.sendAppointmentConfirmationEmail(user.email, {
+        id: appointment.id.toString(),
+        title: `Randevu - ${appointment.notes || 'Danışmanlık'}`,
+        date: appointment.start_time.toLocaleDateString('tr-TR'),
+        time: appointment.start_time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        consultantName: appointment.consultant?.full_name || 'Belirtilmemiş',
+        userName: user.full_name || 'Kullanıcı',
+        location: 'Online / Ofis'
+      });
+    }
+  } catch (error) {
+    console.error('OneSignal e-posta gönderme hatası:', error);
+  }
   
   return res.status(201).json({ success: true, data: appointment, message: 'Randevu başarıyla oluşturuldu' } as ApiResponse);
 });
@@ -77,6 +94,94 @@ export const getAppointmentById = asyncHandler(async (req: Request, res: Respons
   }
 
   return res.json({ success: true, data: appointment } as ApiResponse);
+});
+
+export const approveAppointment = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (!user) {
+    return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
+  }
+
+  const appointmentId = parseInt(req.params.id);
+  const appointment = await AppointmentModel.findById(appointmentId);
+
+  if (!appointment) {
+    return res.status(404).json({ success: false, error: 'Randevu bulunamadı' } as ApiResponse);
+  }
+
+  // Sadece danışman onaylayabilir
+  if (appointment.consultant_id !== user.id) {
+    return res.status(403).json({ success: false, error: 'Bu randevuyu onaylama yetkiniz yok' } as ApiResponse);
+  }
+
+  // Sadece bekleyen randevular onaylanabilir
+  if (appointment.status !== 'pending') {
+    return res.status(400).json({ success: false, error: 'Sadece bekleyen randevular onaylanabilir' } as ApiResponse);
+  }
+
+  // Randevuyu onayla
+  const updatedAppointment = await AppointmentModel.updateStatus(appointmentId, 'confirmed');
+  
+  // Müşteriye bildirim gönder
+  try {
+    await NotificationModel.create({
+      user_id: appointment.client_id,
+      title: 'Randevu Onaylandı',
+      message: `${appointment.consultant?.full_name} adlı danışman randevunuzu onayladı. Tarih: ${new Date(appointment.start_time).toLocaleDateString('tr-TR')} Saat: ${new Date(appointment.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
+      type: 'appointment',
+      is_read: false,
+      appointment_id: appointment.id,
+      action_required: false
+    });
+  } catch (error) {
+    console.error('Bildirim oluşturma hatası:', error);
+  }
+
+  return res.json({ success: true, data: updatedAppointment, message: 'Randevu başarıyla onaylandı' } as ApiResponse);
+});
+
+export const rejectAppointment = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (!user) {
+    return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
+  }
+
+  const appointmentId = parseInt(req.params.id);
+  const appointment = await AppointmentModel.findById(appointmentId);
+
+  if (!appointment) {
+    return res.status(404).json({ success: false, error: 'Randevu bulunamadı' } as ApiResponse);
+  }
+
+  // Sadece danışman reddedebilir
+  if (appointment.consultant_id !== user.id) {
+    return res.status(403).json({ success: false, error: 'Bu randevuyu reddetme yetkiniz yok' } as ApiResponse);
+  }
+
+  // Sadece bekleyen randevular reddedilebilir
+  if (appointment.status !== 'pending') {
+    return res.status(400).json({ success: false, error: 'Sadece bekleyen randevular reddedilebilir' } as ApiResponse);
+  }
+
+  // Randevuyu reddet
+  const updatedAppointment = await AppointmentModel.updateStatus(appointmentId, 'cancelled');
+  
+  // Müşteriye bildirim gönder
+  try {
+    await NotificationModel.create({
+      user_id: appointment.client_id,
+      title: 'Randevu Reddedildi',
+      message: `${appointment.consultant?.full_name} adlı danışman randevunuzu reddetti. Tarih: ${new Date(appointment.start_time).toLocaleDateString('tr-TR')} Saat: ${new Date(appointment.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
+      type: 'appointment',
+      is_read: false,
+      appointment_id: appointment.id,
+      action_required: false
+    });
+  } catch (error) {
+    console.error('Bildirim oluşturma hatası:', error);
+  }
+
+  return res.json({ success: true, data: updatedAppointment, message: 'Randevu reddedildi' } as ApiResponse);
 });
 
 export const cancelAppointment = asyncHandler(async (req: Request, res: Response) => {

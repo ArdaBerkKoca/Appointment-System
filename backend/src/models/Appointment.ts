@@ -1,4 +1,4 @@
-import db from '../config/database';
+import getDatabase from '../config/database';
 import { Appointment, CreateAppointmentRequest } from '../types';
 
 export interface AppointmentWithUsers extends Appointment {
@@ -16,6 +16,7 @@ export class AppointmentModel {
   static async create(appointmentData: CreateAppointmentRequest, clientId: number): Promise<AppointmentWithUsers> {
     const { consultant_id, start_time, end_time, notes } = appointmentData;
 
+    const db = getDatabase();
     const result = db.prepare(`
       INSERT INTO appointments (consultant_id, client_id, start_time, end_time, notes, status)
       VALUES (?, ?, ?, ?, ?, 'pending')
@@ -33,8 +34,8 @@ export class AppointmentModel {
     if (userType === 'consultant') {
       query = `
       SELECT a.*, 
-               c.full_name as client_name, c.email as client_email,
-               u.full_name as consultant_name, u.email as consultant_email
+               c.full_name as client_full_name, c.email as client_email,
+               u.full_name as consultant_full_name, u.email as consultant_email
       FROM appointments a
         LEFT JOIN users c ON a.client_id = c.id
         LEFT JOIN users u ON a.consultant_id = u.id
@@ -44,8 +45,8 @@ export class AppointmentModel {
     } else {
       query = `
       SELECT a.*, 
-               c.full_name as client_name, c.email as client_email,
-               u.full_name as consultant_name, u.email as consultant_email
+               c.full_name as client_full_name, c.email as client_email,
+               u.full_name as consultant_full_name, u.email as consultant_email
       FROM appointments a
         LEFT JOIN users c ON a.client_id = c.id
         LEFT JOIN users u ON a.consultant_id = u.id
@@ -54,6 +55,7 @@ export class AppointmentModel {
     `;
     }
 
+    const db = getDatabase();
     const appointments = db.prepare(query).all(userId) as any[];
 
     return appointments.map(appointment => ({
@@ -67,24 +69,25 @@ export class AppointmentModel {
       created_at: new Date(appointment.created_at),
       updated_at: new Date(appointment.updated_at || appointment.created_at),
       consultant: {
-        full_name: appointment.consultant_name,
+        full_name: appointment.consultant_full_name,
         email: appointment.consultant_email
       },
       client: {
-        full_name: appointment.client_name,
+        full_name: appointment.client_full_name,
         email: appointment.client_email
       }
     }));
   }
 
   static async findById(id: number): Promise<AppointmentWithUsers | null> {
+    const db = getDatabase();
     const appointment = db.prepare(`
       SELECT a.*, 
-             c.full_name as client_name, c.email as client_email,
-             u.full_name as consultant_name, u.email as consultant_email
+             c.full_name as client_full_name, c.email as client_email,
+             u.full_name as consultant_full_name, u.email as consultant_email
       FROM appointments a
-      LEFT JOIN users c ON a.client_id = c.id
       LEFT JOIN users u ON a.consultant_id = u.id
+      LEFT JOIN users c ON a.client_id = c.id
       WHERE a.id = ?
     `).get(id) as any;
 
@@ -101,17 +104,18 @@ export class AppointmentModel {
       created_at: new Date(appointment.created_at),
       updated_at: new Date(appointment.updated_at || appointment.created_at),
       consultant: {
-        full_name: appointment.consultant_name,
+        full_name: appointment.consultant_full_name,
         email: appointment.consultant_email
       },
       client: {
-        full_name: appointment.client_name,
+        full_name: appointment.client_full_name,
         email: appointment.client_email
       }
     };
   }
 
   static async updateStatus(id: number, status: string): Promise<AppointmentWithUsers> {
+    const db = getDatabase();
     const result = db.prepare(`
       UPDATE appointments 
       SET status = ?
@@ -133,13 +137,23 @@ export class AppointmentModel {
   static async updateExpiredAppointments(): Promise<number> {
     const now = new Date().toISOString();
     
-    const result = db.prepare(`
+    const db = getDatabase();
+    
+    // Tarihi geçen pending randevuları 'expired' yap
+    const expiredResult = db.prepare(`
       UPDATE appointments 
-      SET status = 'completed'
-      WHERE end_time < ? AND status IN ('pending', 'confirmed')
+      SET status = 'expired'
+      WHERE end_time < ? AND status = 'pending'
     `).run(now);
 
-    return result.changes || 0;
+    // Tarihi geçen confirmed randevuları 'completed' yap
+    const completedResult = db.prepare(`
+      UPDATE appointments 
+      SET status = 'completed'
+      WHERE end_time < ? AND status = 'confirmed'
+    `).run(now);
+
+    return (expiredResult.changes || 0) + (completedResult.changes || 0);
   }
 
   // Belirli bir randevunun süresi dolmuş mu kontrol et
@@ -164,6 +178,7 @@ export class AppointmentModel {
       ORDER BY a.start_time ASC
     `;
 
+    const db = getDatabase();
     const appointments = db.prepare(query).all(
       startDate.toISOString(),
       endDate.toISOString()

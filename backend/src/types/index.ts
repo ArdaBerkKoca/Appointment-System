@@ -74,7 +74,7 @@ export interface Appointment {
   client_id: number;
   start_time: Date;
   end_time: Date;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   notes?: string;
   meeting_link?: string;
   created_at: Date;
@@ -134,11 +134,14 @@ export interface Payment {
 export interface Notification {
   id: number;
   user_id: number;
-  type: 'email' | 'sms' | 'push';
   title: string;
   message: string;
+  type: 'appointment' | 'system' | 'reminder';
   is_read: boolean;
   created_at: Date;
+  appointment_id?: number;
+  action_required?: boolean;
+  action_type?: 'approve' | 'reject' | 'reschedule';
 }
 
 // API Response Types

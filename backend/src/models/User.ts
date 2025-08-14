@@ -1,4 +1,4 @@
-import db from '../config/database';
+import getDatabase from '../config/database';
 import bcrypt from 'bcryptjs';
 import { User, CreateUserRequest } from '../types';
 
@@ -10,6 +10,7 @@ export class UserModel {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
+    const db = getDatabase();
     const stmt = db.prepare(`
       INSERT INTO users (email, password_hash, full_name, user_type, phone, is_verified)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -26,6 +27,7 @@ export class UserModel {
   }
 
   static async findByEmail(email: string): Promise<User | null> {
+    const db = getDatabase();
     const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
     const user = stmt.get(email) as User | undefined;
     
@@ -33,6 +35,7 @@ export class UserModel {
   }
 
   static async findById(id: number): Promise<User | null> {
+    const db = getDatabase();
     const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
     const user = stmt.get(id) as User | undefined;
     
@@ -50,6 +53,7 @@ export class UserModel {
     const setClause = fields.map((field) => `${field} = ?`).join(', ');
     const query = `UPDATE users SET ${setClause} WHERE id = ?`;
     
+    const db = getDatabase();
     const stmt = db.prepare(query);
     const result = stmt.run(...values, id);
     
@@ -63,6 +67,7 @@ export class UserModel {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
     
+    const db = getDatabase();
     const stmt = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
     const result = stmt.run(passwordHash, id);
     
@@ -70,6 +75,7 @@ export class UserModel {
   }
 
   static async verifyPassword(user: User, password: string): Promise<boolean> {
+    const db = getDatabase();
     const stmt = db.prepare('SELECT password_hash FROM users WHERE id = ?');
     const result = stmt.get(user.id) as { password_hash: string } | undefined;
     
@@ -81,6 +87,7 @@ export class UserModel {
   }
 
   static async getConsultants(): Promise<User[]> {
+    const db = getDatabase();
     const stmt = db.prepare(`
       SELECT id, email, full_name, user_type, created_at
       FROM users 
@@ -92,6 +99,7 @@ export class UserModel {
   }
 
   static async delete(id: number): Promise<boolean> {
+    const db = getDatabase();
     const stmt = db.prepare('DELETE FROM users WHERE id = ?');
     const result = stmt.run(id);
     

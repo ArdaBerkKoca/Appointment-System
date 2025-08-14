@@ -10,7 +10,7 @@ interface Appointment {
   client_id: number;
   start_time: string;
   end_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -79,13 +79,21 @@ export default function AppointmentsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Randevular yüklenemedi');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      setAppointments(data.data || []);
+      console.log('Appointments response:', data);
+      
+      if (data.success && data.data) {
+        setAppointments(data.data);
+      } else {
+        setError('Randevu verisi bulunamadı');
+      }
     } catch (err) {
-      setError('Randevular yüklenirken hata oluştu');
+      const errorMessage = err instanceof Error ? err.message : 'Randevular yüklenirken hata oluştu';
+      setError(errorMessage);
       console.error('Error fetching appointments:', err);
     } finally {
       setLoading(false);
@@ -125,6 +133,7 @@ export default function AppointmentsPage() {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'expired': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -135,6 +144,7 @@ export default function AppointmentsPage() {
       case 'pending': return 'Beklemede';
       case 'cancelled': return 'İptal Edildi';
       case 'completed': return 'Tamamlandı';
+      case 'expired': return 'Süresi Doldu';
       default: return status;
     }
   };
@@ -145,6 +155,32 @@ export default function AppointmentsPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Randevular yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Hata Oluştu</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError('');
+              setLoading(true);
+              fetchAppointments();
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            Tekrar Dene
+          </button>
         </div>
       </div>
     );
@@ -233,6 +269,35 @@ export default function AppointmentsPage() {
             )}
           </div>
 
+          {/* Randevu İşlemleri */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+              <div className="flex items-center">
+                                 <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                 </svg>
+                <div>
+                  <h3 className="text-lg font-medium text-blue-900">Randevularımı Görüntüle</h3>
+                  <p className="text-blue-700">Tüm randevularınızı görüntüleyin ve yönetin</p>
+                </div>
+              </div>
+            </div>
+            
+            {userType === 'client' && (
+              <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                <div className="flex items-center">
+                  <svg className="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                 </svg>
+                  <div>
+                    <h3 className="text-lg font-medium text-green-900">Yeni Randevu Oluştur</h3>
+                    <p className="text-green-700">Danışmanınızdan yeni randevu alın</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
               {error}
@@ -273,6 +338,7 @@ export default function AppointmentsPage() {
                   <option value="confirmed">Onaylandı</option>
                   <option value="completed">Tamamlandı</option>
                   <option value="cancelled">İptal Edildi</option>
+                  <option value="expired">Süresi Doldu</option>
                 </select>
               </div>
             </div>

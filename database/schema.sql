@@ -46,7 +46,7 @@ CREATE TABLE appointments (
     service_id INTEGER REFERENCES services(id) ON DELETE CASCADE,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    status VARCHAR(20) CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed')) DEFAULT 'pending',
+    status VARCHAR(20) CHECK (status IN ('pending', 'confirmed', 'cancelled', 'completed', 'expired')) DEFAULT 'pending',
     notes TEXT,
     meeting_link VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

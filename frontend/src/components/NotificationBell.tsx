@@ -10,6 +10,9 @@ interface Notification {
   type: 'appointment' | 'system' | 'reminder';
   is_read: boolean;
   created_at: string;
+  appointment_id?: number;
+  action_required?: boolean;
+  action_type?: 'approve' | 'reject' | 'reschedule';
 }
 
 export default function NotificationBell() {
@@ -122,6 +125,35 @@ export default function NotificationBell() {
     }
   };
 
+  const handleAppointmentAction = async (appointmentId: number, action: 'approve' | 'reject') => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/${action}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Bildirimi kaldır ve listeyi güncelle
+        setNotifications(prev => prev.filter(n => n.appointment_id !== appointmentId));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Sayfayı yenile (dashboard'ı güncellemek için)
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error(`Randevu ${action} hatası:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'appointment':
@@ -223,6 +255,32 @@ export default function NotificationBell() {
                       {!notification.is_read && (
                         <div className="flex-shrink-0">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons */}
+                      {notification.action_required && notification.appointment_id && (
+                        <div className="flex-shrink-0 flex space-x-2 mt-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAppointmentAction(notification.appointment_id!, 'approve');
+                            }}
+                            disabled={loading}
+                            className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 disabled:opacity-50"
+                          >
+                            {loading ? 'İşleniyor...' : 'Onayla'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAppointmentAction(notification.appointment_id!, 'reject');
+                            }}
+                            disabled={loading}
+                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 disabled:opacity-50"
+                          >
+                            {loading ? 'İşleniyor...' : 'Reddet'}
+                          </button>
                         </div>
                       )}
                     </div>

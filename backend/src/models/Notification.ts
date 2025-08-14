@@ -1,4 +1,4 @@
-import db from '../config/database';
+import getDatabase from '../config/database';
 
 export interface Notification {
   id: number;
@@ -8,16 +8,22 @@ export interface Notification {
   type: 'appointment' | 'system' | 'reminder';
   is_read: boolean;
   created_at: string;
+  appointment_id?: number;
+  action_required?: boolean;
+  action_type?: 'approve' | 'reject' | 'reschedule';
 }
 
 export class NotificationModel {
   static async create(notificationData: Omit<Notification, 'id' | 'created_at'>): Promise<Notification> {
-    const { user_id, title, message, type, is_read } = notificationData;
+    const { user_id, title, message, type, is_read, appointment_id, action_required, action_type } = notificationData;
     
-    const result = db.prepare(`
-      INSERT INTO notifications (user_id, title, message, type, is_read)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(user_id, title, message, type, is_read ? 1 : 0);
+    const db = getDatabase();
+    const stmt = db.prepare(`
+      INSERT INTO notifications (user_id, title, message, type, is_read, appointment_id, action_required, action_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const result = stmt.run(user_id, title, message, type, is_read ? 1 : 0, appointment_id || null, action_required ? 1 : 0, action_type || null);
     
     const notification = await this.findById(result.lastInsertRowid as number);
     if (!notification) {
@@ -27,6 +33,7 @@ export class NotificationModel {
   }
 
   static async findByUser(userId: number, limit: number = 50): Promise<Notification[]> {
+    const db = getDatabase();
     const notifications = db.prepare(`
       SELECT * FROM notifications 
       WHERE user_id = ? 
@@ -41,11 +48,15 @@ export class NotificationModel {
       message: notification.message,
       type: notification.type,
       is_read: Boolean(notification.is_read),
-      created_at: notification.created_at
+      created_at: notification.created_at,
+      appointment_id: notification.appointment_id,
+      action_required: Boolean(notification.action_required),
+      action_type: notification.action_type
     }));
   }
 
   static async findById(id: number): Promise<Notification | null> {
+    const db = getDatabase();
     const notification = db.prepare(`
       SELECT * FROM notifications WHERE id = ?
     `).get(id) as any;
@@ -59,11 +70,15 @@ export class NotificationModel {
       message: notification.message,
       type: notification.type,
       is_read: Boolean(notification.is_read),
-      created_at: notification.created_at
+      created_at: notification.created_at,
+      appointment_id: notification.appointment_id,
+      action_required: Boolean(notification.action_required),
+      action_type: notification.action_type
     };
   }
 
   static async markAsRead(id: number): Promise<Notification> {
+    const db = getDatabase();
     const result = db.prepare(`
       UPDATE notifications 
       SET is_read = 1 
@@ -82,6 +97,7 @@ export class NotificationModel {
   }
 
   static async markAllAsRead(userId: number): Promise<void> {
+    const db = getDatabase();
     db.prepare(`
       UPDATE notifications 
       SET is_read = 1 
@@ -90,6 +106,7 @@ export class NotificationModel {
   }
 
   static async getUnreadCount(userId: number): Promise<number> {
+    const db = getDatabase();
     const result = db.prepare(`
       SELECT COUNT(*) as count 
       FROM notifications 
@@ -100,6 +117,7 @@ export class NotificationModel {
   }
 
   static async deleteOldNotifications(userId: number, daysOld: number = 30): Promise<void> {
+    const db = getDatabase();
     db.prepare(`
       DELETE FROM notifications 
       WHERE user_id = ? AND created_at < datetime('now', '-${daysOld} days')

@@ -33,6 +33,15 @@ class OneSignalService {
   constructor() {
     const appId = process.env.ONESIGNAL_APP_ID;
     const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
+    const organizationId = process.env.ONESIGNAL_ORGANIZATION_ID;
+    const userAuthKey = process.env.ONESIGNAL_USER_AUTH_KEY;
+
+    console.log('🔧 OneSignal Config:', { 
+      appId: appId ? `${appId.substring(0, 8)}...` : 'undefined',
+      hasRestApiKey: !!restApiKey,
+      hasOrganizationId: !!organizationId,
+      hasUserAuthKey: !!userAuthKey
+    });
 
     if (!appId || !restApiKey) {
       console.warn('⚠️ OneSignal configuration is missing. Running in mock mode.');
@@ -41,6 +50,28 @@ class OneSignalService {
     } else {
       this.appId = appId;
       this.client = new Client(appId, restApiKey);
+      console.log('✅ OneSignal client initialized with app ID:', appId);
+      console.log('🏢 Organization ID:', organizationId);
+    }
+  }
+
+  /**
+   * Template listesini getir (debug için)
+   */
+  async getEmailTemplates() {
+    try {
+      if (!this.client) {
+        console.log('❌ OneSignal client not available');
+        return null;
+      }
+
+      console.log('🔍 Fetching email templates...');
+      const response = await this.client.viewNotifications({ limit: 10, offset: 0 });
+      console.log('📋 Available notifications:', response);
+      return response;
+    } catch (error) {
+      console.error('❌ Error fetching templates:', error);
+      return null;
     }
   }
 
@@ -64,6 +95,13 @@ class OneSignalService {
         // Eğer custom HTML kullanılıyorsa
         ...(data.customHtml && { email_body: data.customHtml })
       };
+
+      console.log('📧 Sending email with notification:', {
+        app_id: notification.app_id,
+        template_id: notification.template_id,
+        to: data.to,
+        subject: data.subject
+      });
 
       const response = await this.client.createNotification(notification);
       logger.info('Email sent via OneSignal successfully', { to: data.to, templateId: data.templateId, response });
@@ -120,7 +158,7 @@ class OneSignalService {
     const emailData: EmailData = {
       to: userEmail,
       subject: `🔔 Randevu Hatırlatması - ${appointmentData.title}`,
-      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_REMINDER || 'randevu-hatirlatma',
+      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_REMINDER || 'b95a4c81-7a0b-4da0-8de3-02706c6b68d3',
       templateData: {
         user_name: appointmentData.userName,
         appointment_title: appointmentData.title,
@@ -153,7 +191,7 @@ class OneSignalService {
     const emailData: EmailData = {
       to: userEmail,
       subject: `✅ Randevu Onaylandı - ${appointmentData.title}`,
-      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_CONFIRMATION || 'randevu-onay',
+      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_CONFIRMATION || '167f7d1b-0ce3-457d-9835-3260931bd5be',
       templateData: {
         user_name: appointmentData.userName,
         appointment_title: appointmentData.title,
@@ -188,7 +226,7 @@ class OneSignalService {
     const emailData: EmailData = {
       to: userEmail,
       subject: `📅 Randevu Güncellendi - ${appointmentData.title}`,
-      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_UPDATE || 'randevu-guncelleme',
+      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_UPDATE || '167f7d1b-0ce3-457d-9835-3260931bd5be',
       templateData: {
         user_name: appointmentData.userName,
         appointment_title: appointmentData.title,
@@ -225,7 +263,7 @@ class OneSignalService {
     const emailData: EmailData = {
       to: userEmail,
       subject: `❌ Randevu İptal Edildi - ${appointmentData.title}`,
-      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_CANCELLATION || 'randevu-iptal',
+      templateId: process.env.ONESIGNAL_TEMPLATE_APPOINTMENT_CANCELLATION || '167f7d1b-0ce3-457d-9835-3260931bd5be',
       templateData: {
         user_name: appointmentData.userName,
         appointment_title: appointmentData.title,
@@ -262,7 +300,7 @@ class OneSignalService {
     const emailData: EmailData = {
       to: userEmail,
       subject: `${titles[recommendationData.type]} - Randevu Sistemi`,
-      templateId: process.env.ONESIGNAL_TEMPLATE_AI_RECOMMENDATION || 'ai-onerisi',
+      templateId: process.env.ONESIGNAL_TEMPLATE_AI_RECOMMENDATION || '167f7d1b-0ce3-457d-9835-3260931bd5be',
       templateData: {
         user_name: recommendationData.userName,
         recommendation_type: titles[recommendationData.type],

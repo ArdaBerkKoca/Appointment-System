@@ -154,6 +154,33 @@ export default function CalendarPage() {
 
         <h1 className="text-3xl font-bold mb-6 text-gray-900">Takvim</h1>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
+
+        {/* Takvim İşlemleri */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+            <div className="flex items-center">
+              <svg className="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <div>
+                <h3 className="text-lg font-medium text-green-900">Aylık Takvim</h3>
+                <p className="text-green-700">Aylık görünümde randevularınızı inceleyin</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-200">
+            <div className="flex items-center">
+              <svg className="w-8 h-8 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-lg font-medium text-indigo-900">Haftalık Plan</h3>
+                <p className="text-indigo-700">Haftalık randevu planınızı görün</p>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="bg-white shadow rounded-lg p-6 flex flex-col md:flex-row gap-8">
           <div>
             <Calendar

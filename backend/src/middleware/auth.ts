@@ -5,7 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
-    role: string;
+    user_type: string;
   };
 }
 
@@ -39,7 +39,7 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
     req.user = {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role
+      user_type: decoded.user_type
     };
     next();
     return;
@@ -61,7 +61,7 @@ export const authorize = (allowedUserTypes: string[]) => {
       return;
     }
 
-    if (!allowedUserTypes.includes(req.user.role)) {
+    if (!allowedUserTypes.includes(req.user.user_type)) {
       res.status(403).json({
         success: false,
         error: 'Insufficient permissions',
@@ -84,7 +84,7 @@ export const generateToken = (user: any): string => {
   const payload = {
     id: user.id,
     email: user.email,
-    role: user.role || 'client'
+    user_type: user.user_type || 'client'
   };
 
   return jwt.sign(payload, secret, { expiresIn: '7d' });

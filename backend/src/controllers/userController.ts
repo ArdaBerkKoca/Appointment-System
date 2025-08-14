@@ -18,10 +18,20 @@ export const getConsultants = asyncHandler(async (req: Request, res: Response) =
 
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as AuthenticatedRequest).user;
+  console.log('getProfile - User from JWT:', user);
+  
   if (!user) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
-  const { password_hash, ...userData } = user;
+  
+  // JWT'den sadece id ve email var, tam user bilgilerini database'den alalım
+  const fullUser = await UserModel.findById(Number(user.id));
+  if (!fullUser) {
+    return res.status(404).json({ success: false, error: 'User not found' });
+  }
+  
+  const { password_hash, ...userData } = fullUser;
+  console.log('getProfile - Full user data from DB:', userData);
   return res.json({ success: true, data: userData });
 });
 
@@ -30,11 +40,27 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   if (!user) {
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
-  const { full_name, phone } = req.body;
-  const updated = await UserModel.update(user.id, { full_name, phone });
+  
+  const { full_name, email, phone } = req.body;
+  
+  // Email değişikliği varsa, aynı email başka kullanıcıda var mı kontrol et
+  if (email && email !== user.email) {
+    const existingUser = await UserModel.findByEmail(email);
+    if (existingUser && existingUser.id !== user.id) {
+      return res.status(400).json({ success: false, error: 'Bu email adresi zaten kullanılıyor' });
+    }
+  }
+  
+  const updateData: any = {};
+  if (full_name) updateData.full_name = full_name;
+  if (email) updateData.email = email;
+  if (phone) updateData.phone = phone;
+  
+  const updated = await UserModel.update(user.id, updateData);
   if (!updated) {
     return res.status(400).json({ success: false, error: 'Profil güncellenemedi' });
   }
+  
   const { password_hash, ...userData } = updated;
   return res.json({ success: true, data: userData });
 });
