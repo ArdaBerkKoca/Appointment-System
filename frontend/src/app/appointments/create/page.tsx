@@ -141,16 +141,28 @@ export default function CreateAppointmentPage() {
             </Link>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mt-4">Yeni Randevu Oluştur</h1>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+          {/* Header */}
+          <div className="bg-white shadow rounded-lg p-6 mb-6">
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Yeni Randevu Oluştur</h1>
+                <p className="text-gray-600">Danışmanınızdan randevu alın</p>
+              </div>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6">
-            <div className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="consultant_id" className="block text-sm font-medium text-gray-700 mb-2">
                   Danışman Seçin
@@ -161,7 +173,7 @@ export default function CreateAppointmentPage() {
                   value={formData.consultant_id}
                   onChange={handleInputChange}
                   required
-                  className="input-field"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Danışman seçin...</option>
                   {consultants.map((consultant) => (
@@ -184,7 +196,7 @@ export default function CreateAppointmentPage() {
                     value={formData.start_time}
                     onChange={handleInputChange}
                     required
-                    className="input-field"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
@@ -199,14 +211,14 @@ export default function CreateAppointmentPage() {
                     value={formData.end_time}
                     onChange={handleInputChange}
                     required
-                    className="input-field"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>
 
               <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-                  Notlar (İsteğe bağlı)
+                  Notlar (Zorunlu)
                 </label>
                 <textarea
                   id="notes"
@@ -214,7 +226,7 @@ export default function CreateAppointmentPage() {
                   value={formData.notes}
                   onChange={handleInputChange}
                   rows={4}
-                  className="input-field"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Randevu hakkında notlarınızı buraya yazabilirsiniz..."
                 />
               </div>
@@ -229,13 +241,13 @@ export default function CreateAppointmentPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {loading ? 'Oluşturuluyor...' : 'Randevu Oluştur'}
                 </button>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </div>

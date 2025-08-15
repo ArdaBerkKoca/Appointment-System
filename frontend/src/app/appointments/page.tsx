@@ -262,41 +262,130 @@ export default function AppointmentsPage() {
             {userType === 'client' && (
               <Link 
                 href="/appointments/create" 
-                className="btn-primary"
+                                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Yeni Randevu
               </Link>
             )}
           </div>
 
-          {/* Randevu İşlemleri */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-              <div className="flex items-center">
-                                 <svg className="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                 </svg>
-                <div>
-                  <h3 className="text-lg font-medium text-blue-900">Randevularımı Görüntüle</h3>
-                  <p className="text-blue-700">Tüm randevularınızı görüntüleyin ve yönetin</p>
-                </div>
-              </div>
-            </div>
-            
-            {userType === 'client' && (
-              <div className="bg-green-50 p-6 rounded-lg border border-green-200">
-                <div className="flex items-center">
-                  <svg className="w-8 h-8 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                 </svg>
-                  <div>
-                    <h3 className="text-lg font-medium text-green-900">Yeni Randevu Oluştur</h3>
-                    <p className="text-green-700">Danışmanınızdan yeni randevu alın</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                     {/* Randevu İstatistikleri */}
+           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+               <div className="flex items-center">
+                 <div className="p-2 bg-blue-100 rounded-lg">
+                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                   </svg>
+                 </div>
+                 <div className="ml-3">
+                   <p className="text-sm font-medium text-gray-600">Toplam Randevu</p>
+                   <p className="text-2xl font-semibold text-gray-900">{appointments.length}</p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+               <div className="flex items-center">
+                 <div className="p-2 bg-yellow-100 rounded-lg">
+                   <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                   </svg>
+                 </div>
+                 <div className="ml-3">
+                   <p className="text-sm font-medium text-gray-600">Bekleyen</p>
+                   <p className="text-2xl font-semibold text-gray-900">
+                     {appointments.filter(a => a.status === 'pending').length}
+                   </p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+               <div className="flex items-center">
+                 <div className="p-2 bg-green-100 rounded-lg">
+                   <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                   </svg>
+                 </div>
+                 <div className="ml-3">
+                   <p className="text-sm font-medium text-gray-600">Onaylanan</p>
+                   <p className="text-2xl font-semibold text-gray-900">
+                     {appointments.filter(a => a.status === 'confirmed').length}
+                   </p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+               <div className="flex items-center">
+                 <div className="p-2 bg-purple-100 rounded-lg">
+                   <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                   </svg>
+                 </div>
+                 <div className="ml-3">
+                   <p className="text-sm font-medium text-gray-600">Tamamlanan</p>
+                   <p className="text-2xl font-semibold text-gray-900">
+                     {appointments.filter(a => a.status === 'completed').length}
+                   </p>
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           {/* Hızlı İşlemler */}
+           {userType === 'client' && (
+             <div className="bg-white shadow rounded-lg p-6 mb-6">
+               <h3 className="text-lg font-medium text-gray-900 mb-4">Hızlı İşlemler</h3>
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <Link 
+                   href="/appointments/create" 
+                   className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                 >
+                   <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                     <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                     </svg>
+                   </div>
+                   <div>
+                     <h4 className="font-medium text-gray-900">Yeni Randevu</h4>
+                     <p className="text-sm text-gray-600">Danışmanınızdan randevu alın</p>
+                   </div>
+                 </Link>
+
+                 <Link 
+                   href="/calendar" 
+                   className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-all duration-200"
+                 >
+                   <div className="p-2 bg-green-100 rounded-lg mr-3">
+                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                     </svg>
+                   </div>
+                   <div>
+                     <h4 className="font-medium text-gray-900">Takvim Görünümü</h4>
+                     <p className="text-sm text-gray-600">Randevularınızı takvimde görün</p>
+                   </div>
+                 </Link>
+
+                 <Link 
+                   href="/profile" 
+                   className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-all duration-200"
+                 >
+                   <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                     <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                     </svg>
+                   </div>
+                   <div>
+                     <h4 className="font-medium text-gray-900">Profil Ayarları</h4>
+                     <p className="text-sm text-gray-600">Bildirim ve hesap ayarları</p>
+                   </div>
+                 </Link>
+               </div>
+             </div>
+           )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
@@ -312,14 +401,14 @@ export default function AppointmentsPage() {
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
                   Arama
                 </label>
-                <input
-                  type="text"
-                  id="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Tarih, saat, danışman veya not ara..."
-                  className="input-field"
-                />
+                                 <input
+                   type="text"
+                   id="search"
+                   value={searchTerm}
+                   onChange={(e) => setSearchTerm(e.target.value)}
+                   placeholder="Tarih, saat, danışman veya not ara..."
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 />
               </div>
 
               {/* Durum Filtresi */}
@@ -327,12 +416,12 @@ export default function AppointmentsPage() {
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
                   Durum
                 </label>
-                <select
-                  id="status"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="input-field"
-                >
+                                 <select
+                   id="status"
+                   value={statusFilter}
+                   onChange={(e) => setStatusFilter(e.target.value)}
+                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 >
                   <option value="all">Tümü</option>
                   <option value="pending">Beklemede</option>
                   <option value="confirmed">Onaylandı</option>
@@ -367,9 +456,9 @@ export default function AppointmentsPage() {
                 }
               </p>
               {appointments.length === 0 && userType === 'client' && (
-                <Link href="/appointments/create" className="btn-primary">
-                  Randevu Oluştur
-                </Link>
+                                 <Link href="/appointments/create" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                   Randevu Oluştur
+                 </Link>
               )}
             </div>
           ) : (
