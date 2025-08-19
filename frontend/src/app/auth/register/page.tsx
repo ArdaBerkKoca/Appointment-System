@@ -10,8 +10,10 @@ export default function RegisterPage() {
     email: '',
     password: '',
     full_name: '',
-    user_type: 'client'
-  });
+    user_type: 'client',
+    expertise: '',
+    hourly_rate: ''
+  } as any);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
@@ -137,6 +139,43 @@ export default function RegisterPage() {
                 <p className="mt-1 text-sm text-red-600">{getFieldError(validationErrors, 'user_type')}</p>
               )}
             </div>
+            {formData.user_type === 'consultant' && (
+              <>
+                <div>
+                  <input
+                    name="expertise"
+                    type="text"
+                    required
+                    className={`appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                      getFieldError(validationErrors, 'expertise') ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Uzmanlık (ör. psikoloji, koçluk)"
+                    value={(formData as any).expertise || ''}
+                    onChange={(e) => setFormData({...formData, expertise: e.target.value} as any)}
+                  />
+                  {getFieldError(validationErrors, 'expertise') && (
+                    <p className="mt-1 text-sm text-red-600">{getFieldError(validationErrors, 'expertise')}</p>
+                  )}
+                </div>
+                <div>
+                  <input
+                    name="hourly_rate"
+                    type="number"
+                    min={1}
+                    required
+                    className={`appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                      getFieldError(validationErrors, 'hourly_rate') ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Saatlik Ücret (₺)"
+                    value={(formData as any).hourly_rate || ''}
+                    onChange={(e) => setFormData({...formData, hourly_rate: e.target.value} as any)}
+                  />
+                  {getFieldError(validationErrors, 'hourly_rate') && (
+                    <p className="mt-1 text-sm text-red-600">{getFieldError(validationErrors, 'hourly_rate')}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div>

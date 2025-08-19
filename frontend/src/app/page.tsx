@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useOneSignal } from '../hooks/useOneSignal';
 import LoadingSpinner from '../components/LoadingSpinner';
+import Chatbot from '../components/Chatbot';
 import { 
   Bell, 
   Calendar, 
@@ -123,7 +124,7 @@ export default function HomePage() {
     { name: "Next.js 14", icon: Zap, description: "Modern React framework" },
     { name: "TypeScript", icon: Database, description: "Tip güvenli geliştirme" },
     { name: "Tailwind CSS", icon: TrendingUp, description: "Utility-first CSS" },
-    { name: "PostgreSQL", icon: Lock, description: "Güçlü veritabanı" }
+    { name: "SQLite", icon: Lock, description: "Geçici veritabanı" }
   ];
 
   // Show loading state briefly
@@ -410,8 +411,8 @@ export default function HomePage() {
             <div>
               <h4 className="text-md font-semibold mb-4">İletişim</h4>
               <p className="text-gray-400 leading-relaxed">
-                info@randevusistemi.com<br />
-                +90 xxx xxx xx xx
+                ardaberkkoca12@gmail.com<br />
+                +90 553 796 28 29
               </p>
               <div className="flex space-x-4 mt-4">
                 <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors cursor-pointer">
@@ -428,6 +429,9 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* AI Chatbot */}
+      <Chatbot />
     </div>
   );
 } 

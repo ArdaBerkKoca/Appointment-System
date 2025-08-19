@@ -11,6 +11,8 @@ interface UserData {
   email: string;
   phone: string;
   user_type: 'consultant' | 'client';
+  expertise?: string;
+  hourly_rate?: number;
 }
 
 export default function ProfilePage() {
@@ -20,7 +22,9 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    phone: ''
+    phone: '',
+    expertise: '',
+    hourly_rate: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -62,7 +66,9 @@ export default function ProfilePage() {
         setFormData({
           full_name: data.data.full_name || '',
           email: data.data.email || '',
-          phone: data.data.phone || ''
+          phone: data.data.phone || '',
+          expertise: data.data.expertise || '',
+          hourly_rate: data.data.hourly_rate ? String(data.data.hourly_rate) : ''
         });
         setIsReady(true);
         console.log('Profil yüklendi!');
@@ -274,6 +280,39 @@ export default function ProfilePage() {
                   required
                 />
               </div>
+              {userData?.user_type === 'consultant' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Uzmanlık
+                    </label>
+                    <input
+                      type="text"
+                      name="expertise"
+                      value={formData.expertise}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Örn: psikoloji, koçluk"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Saatlik Ücret (₺)
+                    </label>
+                    <input
+                      type="number"
+                      name="hourly_rate"
+                      min={1}
+                      value={formData.hourly_rate}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Örn: 500"
+                      required
+                    />
+                  </div>
+                </>
+              )}
               <button 
                 type="submit"
                 disabled={isLoading}

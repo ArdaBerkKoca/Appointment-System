@@ -8,6 +8,17 @@ export const createUserSchema = Joi.object<CreateUserRequest>({
   full_name: Joi.string().min(2).max(100).required(),
   user_type: Joi.string().valid('consultant', 'client').required(),
   phone: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).optional(),
+  // Danışman özel alanları: danışman ise zorunlu, değilse yok sayılır
+  expertise: Joi.when('user_type', {
+    is: 'consultant',
+    then: Joi.string().min(2).max(200).required(),
+    otherwise: Joi.string().optional(),
+  }),
+  hourly_rate: Joi.when('user_type', {
+    is: 'consultant',
+    then: Joi.number().positive().required(),
+    otherwise: Joi.number().positive().optional(),
+  }),
 });
 
 export const loginSchema = Joi.object<LoginRequest>({

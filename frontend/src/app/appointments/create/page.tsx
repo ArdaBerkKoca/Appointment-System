@@ -18,6 +18,7 @@ export default function CreateAppointmentPage() {
     notes: ''
   });
   const [consultants, setConsultants] = useState<User[]>([]);
+  const [filters, setFilters] = useState({ expertise: '', minPrice: '', maxPrice: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -61,7 +62,11 @@ export default function CreateAppointmentPage() {
   const fetchConsultants = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users/consultants', {
+      const params = new URLSearchParams();
+      if (filters.expertise) params.append('expertise', filters.expertise);
+      if (filters.minPrice) params.append('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      const response = await fetch(`http://localhost:3001/api/users/consultants?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -75,6 +80,10 @@ export default function CreateAppointmentPage() {
     } catch (err) {
       console.error('Error fetching consultants:', err);
     }
+  };
+
+  const applyFilters = () => {
+    fetchConsultants();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,7 +112,13 @@ export default function CreateAppointmentPage() {
         throw new Error(errorData.error || 'Randevu oluşturulamadı');
       }
 
-      router.push('/appointments');
+      const created = await response.json();
+      // Randevu oluşturulunca direkt detay + ödeme sayfasına yönlendir
+      if (created?.data?.id) {
+        router.push(`/appointments/${created.data.id}`);
+      } else {
+        router.push('/appointments');
+      }
     } catch (err: any) {
       setError(err.message || 'Randevu oluşturulurken hata oluştu');
     } finally {
@@ -161,6 +176,49 @@ export default function CreateAppointmentPage() {
               </div>
             )}
 
+            {/* Filtreler */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Uzmanlık (virgülle ayırın)</label>
+                <input
+                  type="text"
+                  value={filters.expertise}
+                  onChange={(e) => setFilters(prev => ({ ...prev, expertise: e.target.value }))}
+                  placeholder="psikoloji, koçluk, beslenme"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Min Fiyat</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={filters.minPrice}
+                  onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Max Fiyat</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="md:col-span-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={applyFilters}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Filtreleri Uygula
+                </button>
+              </div>
+            </div>
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
@@ -176,9 +234,9 @@ export default function CreateAppointmentPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Danışman seçin...</option>
-                  {consultants.map((consultant) => (
+                  {consultants.map((consultant: any) => (
                     <option key={consultant.id} value={consultant.id}>
-                      {consultant.full_name}
+                      {consultant.full_name}{consultant.hourly_rate ? ` - ₺${consultant.hourly_rate}` : ''}{consultant.expertise ? ` (${consultant.expertise})` : ''}
                     </option>
                   ))}
                 </select>

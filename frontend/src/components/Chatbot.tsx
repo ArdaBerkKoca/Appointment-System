@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
-import { chatbot, ChatMessage } from '../utils/chatbot';
+import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 
 // ChatMessage interface'ini genişlet
-interface ExtendedChatMessage extends ChatMessage {
+interface ExtendedChatMessage {
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
   context?: string;
   suggestions?: string[];
   language?: 'tr' | 'en';
@@ -17,6 +20,10 @@ export default function Chatbot() {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: 500, height: 600 });
+  const [currentContext, setCurrentContext] = useState('');
+  const [currentLanguage, setCurrentLanguage] = useState<'tr' | 'en'>('tr');
+  const [isLoading, setIsLoading] = useState(false);
+  
   const MIN_WIDTH = 400;
   const MIN_HEIGHT = 400;
   const MAX_WIDTH = 800;
@@ -72,7 +79,7 @@ export default function Chatbot() {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       // İlk açılışta karşılama mesajı
-      const welcomeMessage = chatbot.getWelcomeMessage();
+      const welcomeMessage = getWelcomeMessage();
       const newMessage: ExtendedChatMessage = {
         id: Date.now().toString(),
         text: welcomeMessage.text,
@@ -98,10 +105,25 @@ export default function Chatbot() {
     }
   }, [isOpen]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const getWelcomeMessage = () => {
+    const isEnglish = currentLanguage === 'en';
+    
+    return {
+      text: isEnglish 
+        ? "Hello! I'm your AI-powered Appointment System assistant. How can I help you?\n\n• Create appointment\n• Profile management\n• Change password\n• General help"
+        : "Merhaba! Ben AI destekli Randevu Sistemi asistanınız. Size nasıl yardımcı olabilirim?\n\n• Randevu oluşturma\n• Profil yönetimi\n• Şifre değiştirme\n• Genel yardım",
+      suggestions: isEnglish 
+        ? ["Create appointment", "Get help", "Edit profile"]
+        : ["Randevu oluştur", "Yardım al", "Profil düzenle"],
+      context: "karşılama",
+      language: currentLanguage
+    };
+  };
 
-    const userMessage: ChatMessage = {
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || isLoading) return;
+
+    const userMessage: ExtendedChatMessage = {
       id: Date.now().toString(),
       text: inputValue.trim(),
       isUser: true,
@@ -111,23 +133,70 @@ export default function Chatbot() {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
+    setIsLoading(true);
 
-    // Chatbot yanıtını simüle et (gerçek API çağrısı yerine)
-    setTimeout(() => {
-      const response = chatbot.getResponse(userMessage.text);
-      const botMessage: ExtendedChatMessage = {
+    try {
+      // AI API'ye mesaj gönder (token varsa ekle)
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const response = await fetch('http://localhost:3001/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          message: userMessage.text,
+          userId: localStorage.getItem('userId') || null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('AI service error');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        const botMessage: ExtendedChatMessage = {
+          id: (Date.now() + 1).toString(),
+          text: data.data.message,
+          isUser: false,
+          timestamp: new Date(),
+          context: 'genel',
+          suggestions: ['Randevu oluştur', 'Yardım al', 'Profil düzenle'],
+          language: 'tr'
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+        setCurrentContext('genel');
+        setCurrentLanguage('tr');
+      } else {
+        throw new Error(data.message || 'AI response error');
+      }
+
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      
+      // Hata durumunda fallback mesaj
+      const errorMessage: ExtendedChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: response.text,
+        text: currentLanguage === 'en' 
+          ? "I'm sorry, I'm having trouble connecting to the AI service right now. Please try again later or contact support."
+          : "Üzgünüm, AI servisine bağlanırken sorun yaşıyorum. Lütfen daha sonra tekrar deneyin veya destek ile iletişime geçin.",
         isUser: false,
         timestamp: new Date(),
-        context: response.context,
-        suggestions: response.suggestions,
-        language: response.language
+        context: 'hata',
+        suggestions: currentLanguage === 'en' 
+          ? ["Try again", "Get help", "Contact support"]
+          : ["Tekrar dene", "Yardım al", "Destek ile iletişim"],
+        language: currentLanguage
       };
       
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+      setIsLoading(false);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -201,7 +270,7 @@ export default function Chatbot() {
           }}
         >
           {/* Header */}
-          <div className="bg-blue-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5" />
@@ -209,7 +278,7 @@ export default function Chatbot() {
               <div>
                 <h3 className="font-semibold">AI Asistan</h3>
                 <p className="text-sm text-blue-100">
-                  {messages.length > 0 && messages[messages.length - 1].language === 'en' ? "How can I help you?" : "Size nasıl yardımcı olabilirim?"}
+                  {currentLanguage === 'en' ? "AI-powered help" : "AI destekli yardım"}
                 </p>
               </div>
             </div>
@@ -292,21 +361,25 @@ export default function Chatbot() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={messages.length > 0 && messages[messages.length - 1].language === 'en' ? "Type your message..." : "Mesajınızı yazın..."}
+                placeholder={currentLanguage === 'en' ? "Type your message..." : "Mesajınızı yazın..."}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={isTyping}
+                disabled={isLoading}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isTyping}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={!inputValue.trim() || isLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
               >
-                <Send className="w-4 h-4" />
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
 
             {/* Quick Suggestions */}
-            {messages.length > 0 && !isTyping && (
+            {messages.length > 0 && !isTyping && !isLoading && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {messages.length > 0 && messages[messages.length - 1] && !messages[messages.length - 1].isUser && (
                   <>
@@ -328,7 +401,7 @@ export default function Chatbot() {
                       )}
                     </div>
                     
-                    {/* Dinamik Quick Suggestions */}
+                    {/* AI'dan gelen öneriler */}
                     {messages[messages.length - 1].suggestions?.slice(0, 4).map((suggestion, index) => (
                       <button
                         key={index}

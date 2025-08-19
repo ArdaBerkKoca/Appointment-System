@@ -16,9 +16,11 @@ import aiRoutes from './routes/ai';
 import oneSignalRoutes from './routes/oneSignal';
 import testRoutes from './routes/test';
 import dashboardRoutes from './routes/dashboard';
+import paymentRoutes from './routes/payments';
 import { appointmentScheduler } from './utils/scheduler';
 import { reminderScheduler } from './utils/reminderScheduler';
 import { initializeDatabase, closeDatabase } from './config/database';
+import { PaymentController } from './controllers/paymentController';
 
 // Debug environment variables
 console.log('🔧 Environment variables check:');
@@ -39,6 +41,10 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
+
+// Stripe webhook must receive the raw body for signature verification.
+// Register this route BEFORE the JSON body parser.
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), PaymentController.handleWebhook);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -69,6 +75,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/onesignal', oneSignalRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use(notFound);

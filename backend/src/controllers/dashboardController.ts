@@ -46,12 +46,14 @@ async function getConsultantStats(consultantId: number) {
   
   // Toplam randevu sayısı
   const totalAppointments = db.prepare(`
-    SELECT COUNT(*) as count FROM appointments WHERE consultant_id = ?
+    SELECT COUNT(*) as count FROM appointments 
+    WHERE consultant_id = ? AND status IN ('confirmed','completed')
   `).get(consultantId) as { count: number };
 
   // Toplam müşteri sayısı (unique)
   const totalClients = db.prepare(`
-    SELECT COUNT(DISTINCT client_id) as count FROM appointments WHERE consultant_id = ?
+    SELECT COUNT(DISTINCT client_id) as count FROM appointments 
+    WHERE consultant_id = ? AND status IN ('confirmed','completed')
   `).get(consultantId) as { count: number };
 
   // Bekleyen randevu sayısı
@@ -78,7 +80,7 @@ async function getConsultantStats(consultantId: number) {
       u.email as client_email
     FROM appointments a
     JOIN users u ON a.client_id = u.id
-    WHERE a.consultant_id = ?
+    WHERE a.consultant_id = ? AND a.status IN ('confirmed','completed')
     ORDER BY a.start_time DESC
     LIMIT 5
   `).all(consultantId);

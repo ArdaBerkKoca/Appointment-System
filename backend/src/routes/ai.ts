@@ -1,23 +1,23 @@
 import { Router } from 'express';
 import { authenticateToken, requireAnyUser } from '../middleware/auth';
+import { AIController } from '../controllers/aiController';
 
 const router = Router();
 
-// All AI routes require authentication
+// AI Chatbot - Genel soruları cevaplar (genel erişime açık)
+router.post('/chat', AIController.chat);
+
+// Diğer AI rotaları için kimlik doğrulama gerekli
 router.use(authenticateToken);
 router.use(requireAnyUser);
 
-// TODO: Add AI controller methods
-router.post('/suggest', (req, res) => {
-  res.json({ message: 'AI appointment suggestion - TODO' });
-});
+// AI Randevu Önerisi - En uygun zamanları önerir
+router.post('/suggest', AIController.suggestAppointment);
 
-router.post('/chat', (req, res) => {
-  res.json({ message: 'AI chatbot - TODO' });
-});
+// AI Görüşme Özeti - Randevu sonrası otomatik özet
+router.post('/summary', AIController.generateSummary);
 
-router.get('/analytics', (req, res) => {
-  res.json({ message: 'AI analytics - TODO' });
-});
+// AI Analitik - Sistem performans analizi
+router.get('/analytics', AIController.getAnalytics);
 
 export default router; 

@@ -49,9 +49,15 @@ const createTables = async () => {
         user_type TEXT CHECK(user_type IN ('consultant', 'client')) NOT NULL,
         is_verified INTEGER DEFAULT 1,
         phone TEXT,
+        expertise TEXT,
+        hourly_rate REAL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Backward compatibility: ensure new columns exist on older databases
+    try { db.exec("ALTER TABLE users ADD COLUMN expertise TEXT"); } catch (e) {}
+    try { db.exec("ALTER TABLE users ADD COLUMN hourly_rate REAL"); } catch (e) {}
 
     // Appointments table
     db.exec(`
@@ -63,12 +69,16 @@ const createTables = async () => {
         end_time DATETIME NOT NULL,
         status TEXT CHECK(status IN ('pending', 'confirmed', 'cancelled', 'completed', 'expired')) DEFAULT 'pending',
         notes TEXT,
+        meeting_link TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (consultant_id) REFERENCES users(id),
         FOREIGN KEY (client_id) REFERENCES users(id)
       )
     `);
+
+    // Backward compatibility: ensure new columns exist on older databases
+    try { db.exec("ALTER TABLE appointments ADD COLUMN meeting_link TEXT"); } catch (e) {}
 
     // Notifications table
     db.exec(`

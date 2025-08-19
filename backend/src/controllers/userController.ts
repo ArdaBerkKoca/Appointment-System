@@ -6,14 +6,32 @@ import { AuthenticatedRequest } from '../types';
 export const getConsultants = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as AuthenticatedRequest).user;
   const consultants = await UserModel.getConsultants();
-  
+
+  // filters: expertise (comma separated), minPrice, maxPrice
+  const { expertise, minPrice, maxPrice } = req.query as { [key: string]: string };
+
+  let filtered = consultants as any[];
+  if (expertise) {
+    const terms = expertise.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    if (terms.length > 0) {
+      filtered = filtered.filter(c => (c.expertise || '').toLowerCase().split(',').some((e: string) => terms.includes(e.trim())));
+    }
+  }
+  if (minPrice) {
+    const min = Number(minPrice);
+    if (!isNaN(min)) filtered = filtered.filter(c => (c.hourly_rate ?? Infinity) >= min);
+  }
+  if (maxPrice) {
+    const max = Number(maxPrice);
+    if (!isNaN(max)) filtered = filtered.filter(c => (c.hourly_rate ?? 0) <= max);
+  }
+
   // Eğer kullanıcı danışman ise, kendisini listeden çıkar
-  let filteredConsultants = consultants;
   if (user && user.user_type === 'consultant') {
-    filteredConsultants = consultants.filter((consultant: any) => consultant.id !== user.id);
+    filtered = filtered.filter((consultant: any) => consultant.id !== user.id);
   }
   
-  return res.json({ success: true, data: filteredConsultants });
+  return res.json({ success: true, data: filtered });
 });
 
 export const getProfile = asyncHandler(async (req: Request, res: Response) => {
@@ -41,7 +59,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
     return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
   
-  const { full_name, email, phone } = req.body;
+  const { full_name, email, phone, expertise, hourly_rate } = req.body;
   
   // Email değişikliği varsa, aynı email başka kullanıcıda var mı kontrol et
   if (email && email !== user.email) {
@@ -55,6 +73,8 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   if (full_name) updateData.full_name = full_name;
   if (email) updateData.email = email;
   if (phone) updateData.phone = phone;
+  if (typeof expertise !== 'undefined') updateData.expertise = expertise;
+  if (typeof hourly_rate !== 'undefined') updateData.hourly_rate = Number(hourly_rate);
   
   const updated = await UserModel.update(user.id, updateData);
   if (!updated) {

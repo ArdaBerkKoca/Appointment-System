@@ -4,7 +4,7 @@ import { User, CreateUserRequest } from '../types';
 
 export class UserModel {
   static async create(userData: CreateUserRequest): Promise<User> {
-    const { email, password, full_name, user_type, phone } = userData;
+    const { email, password, full_name, user_type, phone, expertise, hourly_rate } = userData;
     
     // Hash password
     const saltRounds = 12;
@@ -12,11 +12,20 @@ export class UserModel {
     
     const db = getDatabase();
     const stmt = db.prepare(`
-      INSERT INTO users (email, password_hash, full_name, user_type, phone, is_verified)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, full_name, user_type, phone, expertise, hourly_rate, is_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(email, passwordHash, full_name, user_type, phone || null, 1);
+    const result = stmt.run(
+      email,
+      passwordHash,
+      full_name,
+      user_type,
+      phone || null,
+      user_type === 'consultant' ? (expertise || null) : null,
+      user_type === 'consultant' ? (hourly_rate ?? null) : null,
+      1
+    );
     
     // Get the created user
     const createdUser = await this.findById(result.lastInsertRowid as number);
@@ -89,7 +98,7 @@ export class UserModel {
   static async getConsultants(): Promise<User[]> {
     const db = getDatabase();
     const stmt = db.prepare(`
-      SELECT id, email, full_name, user_type, created_at
+      SELECT id, email, full_name, user_type, phone, expertise, hourly_rate, created_at
       FROM users 
       WHERE user_type = 'consultant'
       ORDER BY full_name

@@ -7,6 +7,7 @@ import { validate, createAppointmentSchema } from '../utils/validation';
 import { EmailService } from '../services/emailService';
 import { oneSignalService } from '../services/oneSignalService';
 import { NotificationModel } from '../models/Notification';
+import { isValidDate } from '../utils/validation';
 
 export const createAppointment = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as AuthenticatedRequest).user;
@@ -22,22 +23,8 @@ export const createAppointment = asyncHandler(async (req: Request, res: Response
   const appointmentData = validate(createAppointmentSchema, req.body) as CreateAppointmentRequest;
 
   const appointment = await AppointmentModel.create(appointmentData, user.id);
-  
-  // Danışmana bildirim gönder
-  try {
-    await NotificationModel.create({
-      user_id: appointment.consultant_id,
-      title: 'Yeni Randevu Talebi',
-      message: `${appointment.client?.full_name} adlı müşteriden yeni randevu talebi geldi. Tarih: ${new Date(appointment.start_time).toLocaleDateString('tr-TR')} Saat: ${new Date(appointment.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`,
-      type: 'appointment',
-      is_read: false,
-      appointment_id: appointment.id,
-      action_required: true,
-      action_type: 'approve'
-    });
-  } catch (error) {
-    console.error('Bildirim oluşturma hatası:', error);
-  }
+
+  // Ödeme tamamlanana kadar danışmana bildirim göndermeyelim; ödeme onayı sonrası gönderilecek
   
   // E-posta bildirimi gönder
   await EmailService.sendAppointmentCreatedEmail(appointment);
@@ -91,6 +78,11 @@ export const getAppointmentById = asyncHandler(async (req: Request, res: Respons
 
   if (!appointment || (appointment.client_id !== user.id && appointment.consultant_id !== user.id)) {
     return res.status(404).json({ success: false, error: 'Randevu bulunamadı veya erişim izni yok' } as ApiResponse);
+  }
+
+  // Danışmanlar, ödeme yapılmamış (pending) randevu detayını göremez
+  if (user.user_type === 'consultant' && appointment.status === 'pending') {
+    return res.status(403).json({ success: false, error: 'Ödeme tamamlanana kadar randevu danışman tarafından görüntülenemez' } as ApiResponse);
   }
 
   return res.json({ success: true, data: appointment } as ApiResponse);
@@ -290,6 +282,51 @@ export const completeAppointment = asyncHandler(async (req: Request, res: Respon
 
   const updatedAppointment = await AppointmentModel.updateStatus(appointmentId, 'completed');
   return res.json({ success: true, data: updatedAppointment, message: 'Randevu başarıyla tamamlandı' } as ApiResponse);
+});
+
+export const rescheduleAppointment = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (!user) {
+    return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
+  }
+
+  const appointmentId = parseInt(req.params.id);
+  const { start_time, end_time } = req.body as { start_time?: string; end_time?: string };
+
+  if (!start_time || !end_time || !isValidDate(start_time) || !isValidDate(end_time)) {
+    return res.status(400).json({ success: false, error: 'Geçerli başlangıç ve bitiş zamanı gereklidir' } as ApiResponse);
+  }
+
+  const appointment = await AppointmentModel.findById(appointmentId);
+  if (!appointment) {
+    return res.status(404).json({ success: false, error: 'Randevu bulunamadı' } as ApiResponse);
+  }
+
+  // Sadece randevunun sahibi veya danışmanı erteleyebilir
+  if (appointment.client_id !== user.id && appointment.consultant_id !== user.id) {
+    return res.status(403).json({ success: false, error: 'Bu randevuyu erteleme yetkiniz yok' } as ApiResponse);
+  }
+
+  const updatedAppointment = await AppointmentModel.updateTimes(appointmentId, start_time, end_time, true);
+
+  try {
+    await NotificationModel.create({
+      user_id: appointment.client_id === user.id ? appointment.consultant_id : appointment.client_id,
+      title: 'Randevu Güncellendi',
+      message: `${new Date(updatedAppointment.start_time).toLocaleDateString('tr-TR')} ${new Date(updatedAppointment.start_time).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} tarihine ertelendi`,
+      type: 'appointment',
+      is_read: false,
+      appointment_id: appointment.id,
+      action_required: true,
+      action_type: 'approve'
+    });
+  } catch (error) {
+    console.error('Bildirim oluşturma hatası:', error);
+  }
+
+  await EmailService.sendAppointmentUpdateEmail(updatedAppointment);
+
+  return res.json({ success: true, data: updatedAppointment, message: 'Randevu güncellendi' } as ApiResponse);
 });
 
 // Dashboard için özel endpoint - otomatik güncelleme ile

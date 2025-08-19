@@ -64,6 +64,35 @@ export class EmailService {
     }
   }
 
+  // Randevu güncelleme e-postası gönder
+  static async sendAppointmentUpdateEmail(appointment: AppointmentWithUsers, oldStartTime?: Date, oldEndTime?: Date) {
+    try {
+      const client = await UserModel.findById(appointment.client_id);
+      const consultant = await UserModel.findById(appointment.consultant_id);
+      
+      if (!client || !consultant) {
+        logger.error('Client or consultant not found for update email');
+        return false;
+      }
+
+      const emailData = {
+        clientName: client.full_name,
+        consultantName: consultant.full_name,
+        oldDate: oldStartTime ? oldStartTime.toLocaleDateString('tr-TR') : undefined,
+        newDate: appointment.start_time.toLocaleDateString('tr-TR'),
+        oldTime: oldStartTime ? oldStartTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : undefined,
+        newTime: appointment.start_time.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      } as any;
+
+      await sendTemplateEmail(client.email, 'appointmentUpdated', emailData);
+      logger.info(`Appointment update email sent for appointment ${appointment.id}`);
+      return true;
+    } catch (error) {
+      logger.error('Error sending appointment update email:', error);
+      return false;
+    }
+  }
+
   // Randevu onaylandığında e-posta gönder
   static async sendAppointmentConfirmedEmail(appointment: AppointmentWithUsers) {
     try {

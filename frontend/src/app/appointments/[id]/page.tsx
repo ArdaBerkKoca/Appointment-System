@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import PaymentForm from '../../../components/PaymentForm';
 
 interface Appointment {
   id: number;
@@ -16,6 +17,7 @@ interface Appointment {
   consultant?: {
     full_name: string;
     email: string;
+    hourly_rate?: number;
   };
   client?: {
     full_name: string;
@@ -30,7 +32,11 @@ export default function AppointmentDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [newStartTime, setNewStartTime] = useState('');
+  const [newEndTime, setNewEndTime] = useState('');
   const [userType, setUserType] = useState<'consultant' | 'client' | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const router = useRouter();
   const params = useParams();
   const appointmentId = params?.id;
@@ -86,6 +92,12 @@ export default function AppointmentDetailPage() {
 
       const data = await response.json();
       setAppointment(data.data);
+      // Bekleyen randevu ise ve kullanıcı müşteri ise ödeme göster
+      if (data.data?.status === 'pending') {
+        setShowPayment(true);
+      } else {
+        setShowPayment(false);
+      }
     } catch (err) {
       setError('Randevu yüklenirken hata oluştu');
       console.error('Error fetching appointment:', err);
@@ -184,6 +196,39 @@ export default function AppointmentDetailPage() {
       setError('Randevu tamamlanırken hata oluştu');
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!newStartTime || !newEndTime) {
+      setError('Lütfen yeni başlangıç ve bitiş zamanlarını girin');
+      return;
+    }
+
+    try {
+      setRescheduling(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/reschedule`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ start_time: newStartTime, end_time: newEndTime })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Randevu ertelenemedi');
+      }
+
+      const data = await response.json();
+      setAppointment(data.data);
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Randevu ertelenirken hata oluştu');
+    } finally {
+      setRescheduling(false);
     }
   };
 
@@ -313,6 +358,9 @@ export default function AppointmentDetailPage() {
                     <p className="mt-1 text-sm text-gray-900">
                       {appointment.consultant?.full_name || 'Bilinmiyor'}
                     </p>
+                    {appointment.consultant?.hourly_rate !== undefined && (
+                      <p className="text-xs text-gray-600">Ücret: ₺{appointment.consultant.hourly_rate}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-500">Müşteri</label>
@@ -331,6 +379,62 @@ export default function AppointmentDetailPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-700">{appointment.notes}</p>
                 </div>
+              </div>
+            )}
+
+            {/* Erteleme */}
+            {(appointment.status === 'pending' || appointment.status === 'confirmed') && (
+              <div className="mt-8 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Randevuyu Ertele</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="new_start" className="block text-sm font-medium text-gray-700 mb-1">Yeni Başlangıç</label>
+                    <input
+                      id="new_start"
+                      type="datetime-local"
+                      value={newStartTime}
+                      onChange={(e) => setNewStartTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new_end" className="block text-sm font-medium text-gray-700 mb-1">Yeni Bitiş</label>
+                    <input
+                      id="new_end"
+                      type="datetime-local"
+                      value={newEndTime}
+                      onChange={(e) => setNewEndTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-gray-500">Erteleme sonrası randevu durumu tekrar beklemede olur ve karşı tarafa bildirim gider.</div>
+                <div className="mt-4">
+                  <button
+                    onClick={handleReschedule}
+                    disabled={rescheduling || !newStartTime || !newEndTime}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rescheduling ? 'Erteleniyor...' : 'Ertele'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Ödeme */}
+            {userType === 'client' && showPayment && (
+              <div className="mt-8">
+                <PaymentForm
+                  appointmentId={appointment.id}
+                  amount={appointment.consultant?.hourly_rate ?? 100}
+                  currency="TRY"
+                  onSuccess={() => {
+                    // Ödeme sonrası randevuyu tekrar yükle
+                    fetchAppointment();
+                    setShowPayment(false);
+                  }}
+                  onError={() => {}}
+                />
               </div>
             )}
 

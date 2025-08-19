@@ -6,6 +6,8 @@ export interface User {
   full_name: string;
   user_type: 'consultant' | 'client';
   phone?: string;
+  expertise?: string;
+  hourly_rate?: number;
   avatar_url?: string;
   is_verified?: boolean;
   created_at: Date;
@@ -18,6 +20,8 @@ export interface CreateUserRequest {
   full_name: string;
   user_type: 'consultant' | 'client';
   phone?: string;
+  expertise?: string;
+  hourly_rate?: number;
 }
 
 export interface LoginRequest {

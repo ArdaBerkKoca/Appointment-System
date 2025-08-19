@@ -107,6 +107,25 @@ export const emailTemplates = {
       <p>Teşekkürler,<br>Randevu Sistemi</p>
     `
   }
+  ,
+  appointmentUpdated: {
+    subject: 'Randevunuz Güncellendi',
+    template: (data: any) => `
+      <h2>Randevunuz Güncellendi</h2>
+      <p>Sayın ${data.clientName},</p>
+      <p>Randevunuzun zamanı güncellenmiştir.</p>
+      <div style="background: #e7f1ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3>Güncellenen Randevu:</h3>
+        <p><strong>Danışman:</strong> ${data.consultantName}</p>
+        ${data.oldDate ? `<p><strong>Eski Tarih:</strong> ${data.oldDate}</p>` : ''}
+        ${data.oldTime ? `<p><strong>Eski Saat:</strong> ${data.oldTime}</p>` : ''}
+        <p><strong>Yeni Tarih:</strong> ${data.newDate}</p>
+        <p><strong>Yeni Saat:</strong> ${data.newTime}</p>
+      </div>
+      <p>Lütfen yeni randevu zamanına uygun planlama yapınız.</p>
+      <p>Teşekkürler,<br>Randevu Sistemi</p>
+    `
+  }
 };
 
 // E-posta gönderme fonksiyonu

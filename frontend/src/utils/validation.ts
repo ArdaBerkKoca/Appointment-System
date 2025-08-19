@@ -13,6 +13,8 @@ export interface RegisterFormData {
   password: string;
   full_name: string;
   user_type: 'client' | 'consultant';
+  expertise?: string;
+  hourly_rate?: string | number;
 }
 
 export const validateLoginForm = (data: LoginFormData): ValidationError[] => {
@@ -56,6 +58,16 @@ export const validateRegisterForm = (data: RegisterFormData): ValidationError[] 
 
   if (!data.user_type) {
     errors.push({ field: 'user_type', message: 'Kullanıcı tipi seçiniz' });
+  }
+
+  if (data.user_type === 'consultant') {
+    if (!data.expertise || String(data.expertise).trim().length < 2) {
+      errors.push({ field: 'expertise', message: 'Uzmanlık alanı gereklidir' });
+    }
+    const rate = Number(data.hourly_rate);
+    if (!rate || isNaN(rate) || rate <= 0) {
+      errors.push({ field: 'hourly_rate', message: 'Geçerli bir saatlik ücret giriniz' });
+    }
   }
 
   return errors;
