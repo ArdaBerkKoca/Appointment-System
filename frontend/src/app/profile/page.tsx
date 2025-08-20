@@ -43,7 +43,7 @@ export default function ProfilePage() {
       const token = localStorage.getItem('token');
       console.log('Profil - Token:', token ? 'Mevcut' : 'Yok');
       
-      const response = await fetch('http://localhost:3001/api/users/me', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -99,7 +99,7 @@ export default function ProfilePage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users/me', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

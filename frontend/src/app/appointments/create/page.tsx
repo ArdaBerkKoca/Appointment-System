@@ -38,7 +38,7 @@ export default function CreateAppointmentPage() {
     const checkUserType = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3001/api/users/me', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/me`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -66,7 +66,7 @@ export default function CreateAppointmentPage() {
       if (filters.expertise) params.append('expertise', filters.expertise);
       if (filters.minPrice) params.append('minPrice', filters.minPrice);
       if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-      const response = await fetch(`http://localhost:3001/api/users/consultants?${params.toString()}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/consultants?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -93,7 +93,7 @@ export default function CreateAppointmentPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/appointments', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

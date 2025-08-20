@@ -29,7 +29,7 @@ export default function RootLayout({
                 console.log('🚀 OneSignal v16 SDK başlatılıyor...');
                 try {
                   await OneSignal.init({
-                    appId: "37be747a-043b-442e-88b6-097ee3f40714",
+                    appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '00000000-0000-0000-0000-000000000000'}",
                     serviceWorkerPath: "/OneSignalSDKWorker.js",
                     serviceWorkerParam: { scope: "/" },
                     allowLocalhostAsSecureOrigin: true,

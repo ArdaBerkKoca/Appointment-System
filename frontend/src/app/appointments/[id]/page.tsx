@@ -11,7 +11,7 @@ interface Appointment {
   client_id: number;
   start_time: string;
   end_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'expired';
   notes?: string;
   created_at: string;
   consultant?: {
@@ -24,6 +24,41 @@ interface Appointment {
     email: string;
   };
 }
+
+// Status helper fonksiyonları
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'confirmed':
+      return 'bg-green-100 text-green-800';
+    case 'cancelled':
+      return 'bg-red-100 text-red-800';
+    case 'completed':
+      return 'bg-blue-100 text-blue-800';
+    case 'expired':
+      return 'bg-gray-100 text-gray-600';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'Beklemede';
+    case 'confirmed':
+      return 'Onaylandı';
+    case 'cancelled':
+      return 'İptal Edildi';
+    case 'completed':
+      return 'Tamamlandı';
+    case 'expired':
+      return 'Süresi Doldu';
+    default:
+      return status;
+  }
+};
 
 export default function AppointmentDetailPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -54,7 +89,7 @@ export default function AppointmentDetailPage() {
   const fetchUserType = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/users/me', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,7 +109,7 @@ export default function AppointmentDetailPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments/${appointmentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -114,7 +149,7 @@ export default function AppointmentDetailPage() {
     try {
       setCancelling(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/cancel`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments/${appointmentId}/cancel`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -145,7 +180,7 @@ export default function AppointmentDetailPage() {
     try {
       setConfirming(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/confirm`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments/${appointmentId}/confirm`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -176,7 +211,7 @@ export default function AppointmentDetailPage() {
     try {
       setCompleting(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/complete`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments/${appointmentId}/complete`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -208,7 +243,7 @@ export default function AppointmentDetailPage() {
     try {
       setRescheduling(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/appointments/${appointmentId}/reschedule`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/appointments/${appointmentId}/reschedule`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,25 +267,7 @@ export default function AppointmentDetailPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'Onaylandı';
-      case 'pending': return 'Beklemede';
-      case 'cancelled': return 'İptal Edildi';
-      case 'completed': return 'Tamamlandı';
-      default: return status;
-    }
-  };
 
   if (loading) {
     return (
@@ -372,6 +389,25 @@ export default function AppointmentDetailPage() {
               </div>
             </div>
 
+            {/* Expired Uyarısı */}
+            {appointment.status === 'expired' && (
+              <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Randevu Süresi Doldu</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>Bu randevu için belirlenen zaman geçmiştir. Yeni bir randevu oluşturmanız gerekmektedir.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Notlar */}
             {appointment.notes && (
               <div className="mt-6">
@@ -468,6 +504,14 @@ export default function AppointmentDetailPage() {
                 >
                   {completing ? 'Tamamlanıyor...' : 'Tamamla'}
                 </button>
+              )}
+              {appointment.status === 'expired' && (
+                <Link
+                  href="/appointments/create"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  Yeni Randevu Oluştur
+                </Link>
               )}
               <Link
                 href="/appointments"

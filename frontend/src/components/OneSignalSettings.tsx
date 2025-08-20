@@ -104,7 +104,7 @@ export const OneSignalSettings: React.FC<OneSignalSettingsProps> = ({
         if (data.data?.action === 'view_appointment') {
           window.location.href = data.data.url || '/appointments';
         } else if (data.data?.action === 'book_new_appointment') {
-          window.location.href = '/appointments/new';
+          window.location.href = '/appointments/create';
         }
       });
 

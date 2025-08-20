@@ -56,10 +56,12 @@ export const getAppointments = asyncHandler(async (req: Request, res: Response) 
     return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
   }
 
-  // Süresi dolmuş randevuları otomatik olarak tamamlandı olarak işaretle
-  await AppointmentModel.updateExpiredAppointments();
-
+  // Önce randevuları al (expired güncellemesi öncesi)
   const appointments = await AppointmentModel.findByUser(user.id, user.user_type);
+  
+  // Sonra süresi dolmuş randevuları güncelle (background'da)
+  AppointmentModel.updateExpiredAppointments().catch(console.error);
+
   return res.json({ success: true, data: appointments } as ApiResponse);
 });
 
@@ -71,19 +73,21 @@ export const getAppointmentById = asyncHandler(async (req: Request, res: Respons
 
   const appointmentId = parseInt(req.params.id);
   
-  // Önce süresi dolmuş randevuları güncelle
-  await AppointmentModel.updateExpiredAppointments();
-  
+  // Önce randevuyu al (expired güncellemesi öncesi)
   const appointment = await AppointmentModel.findById(appointmentId);
 
   if (!appointment || (appointment.client_id !== user.id && appointment.consultant_id !== user.id)) {
     return res.status(404).json({ success: false, error: 'Randevu bulunamadı veya erişim izni yok' } as ApiResponse);
   }
 
-  // Danışmanlar, ödeme yapılmamış (pending) randevu detayını göremez
-  if (user.user_type === 'consultant' && appointment.status === 'pending') {
-    return res.status(403).json({ success: false, error: 'Ödeme tamamlanana kadar randevu danışman tarafından görüntülenemez' } as ApiResponse);
+  // Danışmanlar pending randevuları görebilir (onaylama/reddetme için)
+  // Sadece expired randevuları göremez
+  if (user.user_type === 'consultant' && appointment.status === 'expired') {
+    return res.status(403).json({ success: false, error: 'Süresi dolmuş randevu görüntülenemez' } as ApiResponse);
   }
+
+  // Sonra süresi dolmuş randevuları güncelle (background'da)
+  AppointmentModel.updateExpiredAppointments().catch(console.error);
 
   return res.json({ success: true, data: appointment } as ApiResponse);
 });
@@ -336,13 +340,35 @@ export const getDashboardData = asyncHandler(async (req: Request, res: Response)
     return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
   }
 
-  // Süresi dolmuş randevuları otomatik olarak tamamlandı olarak işaretle
-  const updatedCount = await AppointmentModel.updateExpiredAppointments();
-
+  // Önce randevuları al (expired güncellemesi öncesi)
   const appointments = await AppointmentModel.findByUser(user.id, user.user_type);
+  
+  // Sonra süresi dolmuş randevuları güncelle (background'da)
+  AppointmentModel.updateExpiredAppointments().catch(console.error);
+
   return res.json({ 
     success: true, 
     data: appointments,
-    updatedCount 
+    updatedCount: 0 // Artık real-time güncelleme yapmıyoruz
   } as ApiResponse);
+});
+
+// Danışmanın bekleyen randevu talepleri
+export const getPendingRequestsForConsultant = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as AuthenticatedRequest).user;
+  if (!user) {
+    return res.status(401).json({ success: false, error: 'User not authenticated' } as ApiResponse);
+  }
+
+  if (user.user_type !== 'consultant') {
+    return res.status(403).json({ success: false, error: 'Sadece danışmanlar bu listeyi görüntüleyebilir' } as ApiResponse);
+  }
+
+  // Önce bekleyen talepleri al (expired güncellemesi öncesi)
+  const requests = await AppointmentModel.findPendingByConsultant(Number(user.id));
+  
+  // Sonra süresi dolmuş randevuları güncelle (background'da)
+  AppointmentModel.updateExpiredAppointments().catch(console.error);
+
+  return res.json({ success: true, data: requests } as ApiResponse);
 });

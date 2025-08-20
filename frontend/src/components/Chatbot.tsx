@@ -138,7 +138,7 @@ export default function Chatbot() {
     try {
       // AI API'ye mesaj gönder (token varsa ekle)
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const response = await fetch('http://localhost:3001/api/ai/chat', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

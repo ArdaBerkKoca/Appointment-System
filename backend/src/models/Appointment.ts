@@ -136,6 +136,43 @@ export class AppointmentModel {
     };
   }
 
+  static async findPendingByConsultant(consultantId: number): Promise<AppointmentWithUsers[]> {
+    const db = getDatabase();
+    const query = `
+      SELECT a.*, 
+             c.full_name as client_full_name, c.email as client_email,
+             u.full_name as consultant_full_name, u.email as consultant_email, u.hourly_rate as consultant_hourly_rate
+      FROM appointments a
+        LEFT JOIN users c ON a.client_id = c.id
+        LEFT JOIN users u ON a.consultant_id = u.id
+      WHERE a.consultant_id = ? AND a.status = 'pending'
+      ORDER BY a.start_time ASC
+    `;
+
+    const rows = db.prepare(query).all(consultantId) as any[];
+
+    return rows.map(appointment => ({
+      id: appointment.id,
+      consultant_id: appointment.consultant_id,
+      client_id: appointment.client_id,
+      start_time: new Date(appointment.start_time),
+      end_time: new Date(appointment.end_time),
+      status: appointment.status,
+      notes: appointment.notes,
+      created_at: new Date(appointment.created_at),
+      updated_at: new Date(appointment.updated_at || appointment.created_at),
+      consultant: {
+        full_name: appointment.consultant_full_name,
+        email: appointment.consultant_email,
+        hourly_rate: appointment.consultant_hourly_rate
+      },
+      client: {
+        full_name: appointment.client_full_name,
+        email: appointment.client_email
+      }
+    }));
+  }
+
   static async updateStatus(id: number, status: string): Promise<AppointmentWithUsers> {
     const db = getDatabase();
     const result = db.prepare(`
@@ -161,18 +198,18 @@ export class AppointmentModel {
     
     const db = getDatabase();
     
-    // Tarihi geçen pending randevuları 'expired' yap
+    // Tarihi geçen pending randevuları 'expired' yap (start_time < now olmalı)
     const expiredResult = db.prepare(`
       UPDATE appointments 
       SET status = 'expired'
-      WHERE end_time < ? AND status = 'pending'
+      WHERE start_time < ? AND status = 'pending'
     `).run(now);
 
-    // Tarihi geçen confirmed randevuları 'completed' yap
+    // Tarihi geçen confirmed randevuları 'completed' yap (start_time < now olmalı)
     const completedResult = db.prepare(`
       UPDATE appointments 
       SET status = 'completed'
-      WHERE end_time < ? AND status = 'confirmed'
+      WHERE start_time < ? AND status = 'confirmed'
     `).run(now);
 
     return (expiredResult.changes || 0) + (completedResult.changes || 0);
@@ -184,7 +221,7 @@ export class AppointmentModel {
     if (!appointment) return false;
     
     const now = new Date();
-    return appointment.end_time < now;
+    return appointment.start_time < now;
   }
 
   // Belirli tarih aralığındaki randevuları bul

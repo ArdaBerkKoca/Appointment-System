@@ -30,7 +30,7 @@ export default function OneSignalEmailSettings({ onClose }: OneSignalEmailSettin
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/test/send-onesignal-email', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/test/send-onesignal-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

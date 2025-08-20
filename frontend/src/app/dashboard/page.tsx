@@ -35,7 +35,7 @@ export default function DashboardPage() {
       }
 
       console.log('API çağrısı yapılıyor...');
-      const response = await fetch('http://localhost:3001/api/users/me', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/users/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -73,7 +73,7 @@ export default function DashboardPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:3001/api/dashboard/stats', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/dashboard/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -337,7 +337,7 @@ export default function DashboardPage() {
           <>
             {/* Danışman Hızlı Erişim */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <Link href="/appointments" className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white hover:shadow-lg transition-shadow">
+              <Link href="/appointments/pending" className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white hover:shadow-lg transition-shadow">
                 <div className="flex items-center">
                   <div className="p-2 bg-white bg-opacity-20 rounded-lg">
                     <Calendar className="w-6 h-6 text-white" />
@@ -347,7 +347,7 @@ export default function DashboardPage() {
                     <p className="text-blue-100 mb-4">Gelen randevu taleplerini görüntüleyin</p>
                     <div className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Randevuları Gör
+                      Talepleri Gör
                     </div>
                   </div>
                 </div>

@@ -34,7 +34,7 @@ export default function PaymentForm({
       }
 
       // Ödeme intent oluştur
-      const response = await fetch('http://localhost:3001/api/payments/create-intent', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payments/create-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export default function PaymentForm({
         await simulatePayment(data.data.clientSecret);
 
         // Backend'e ödeme onayı gönder (randevu durumunu güncellemek için)
-        const confirmRes = await fetch('http://localhost:3001/api/payments/confirm', {
+        const confirmRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/payments/confirm`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

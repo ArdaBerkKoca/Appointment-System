@@ -56,17 +56,19 @@ async function getConsultantStats(consultantId: number) {
     WHERE consultant_id = ? AND status IN ('confirmed','completed')
   `).get(consultantId) as { count: number };
 
-  // Bekleyen randevu sayısı
+  // Bekleyen randevu sayısı (sadece pending)
   const pendingAppointments = db.prepare(`
     SELECT COUNT(*) as count FROM appointments 
     WHERE consultant_id = ? AND status = 'pending'
   `).get(consultantId) as { count: number };
 
-  // Toplam kazanç (tamamlanan randevular)
-  const totalEarnings = db.prepare(`
-    SELECT COUNT(*) as count FROM appointments 
-    WHERE consultant_id = ? AND status = 'completed'
-  `).get(consultantId) as { count: number };
+  // Toplam kazanç (tamamlanan randevuların danışman saatlik ücretlerinin toplamı)
+  const totalEarningsRow = db.prepare(`
+    SELECT COALESCE(SUM(u.hourly_rate), 0) as amount
+    FROM appointments a
+    JOIN users u ON a.consultant_id = u.id
+    WHERE a.consultant_id = ? AND a.status = 'completed'
+  `).get(consultantId) as { amount: number };
 
   // Son randevular
   const recentAppointments = db.prepare(`
@@ -89,7 +91,7 @@ async function getConsultantStats(consultantId: number) {
     totalAppointments: totalAppointments?.count || 0,
     totalClients: totalClients?.count || 0,
     pendingAppointments: pendingAppointments?.count || 0,
-    totalEarnings: (totalEarnings?.count || 0) * 100, // Her randevu 100₺ varsayımı
+    totalEarnings: totalEarningsRow?.amount || 0,
     recentAppointments: recentAppointments
   };
 }
